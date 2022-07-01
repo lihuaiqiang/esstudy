@@ -53,21 +53,21 @@ public class SpringDataEsTemplateTest {
     @Test
     public void saveTest() {
         Product product = new Product();
-        product.setId(1001L);
-        product.setTitle("比亚迪-唐");
+        product.setId(1002L);
+        product.setTitle("比亚迪-汉");
         product.setCategory("新能源");
-        product.setPrice(150066.88D);
+        product.setPrice(150.88D);
         product.setImages("http://baidu.com/1.png");
         //这个方式也可以实现保存
-        //esTemplate.save(product);
+        esTemplate.save(product);
 
         Product product2 = new Product();
         product2.setId(1L);
-        product2.setTitle("小米 2 手机");
+        product2.setTitle("小米2手机");
         product2.setCategory("手机");
         product2.setPrice(1d);
         product2.setImages("http://www.atguigu/xm.jpg");
-        esTemplate.save(product);
+        esTemplate.save(product2);
     }
 
     /**
@@ -109,8 +109,8 @@ public class SpringDataEsTemplateTest {
         product.setPrice(10d);
         //product.setImages("http://www.atguigu/xm.jpg");
         Document document = Document.create();
-        document.append("price", "2000.00");
-        UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(4L)).withDocument(document).build();
+        document.append("title", "张三");
+        UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(1L)).withDocument(document).build();
         esTemplate.update(updateQuery, IndexCoordinates.of("product"));
     }
 
@@ -120,7 +120,7 @@ public class SpringDataEsTemplateTest {
     @Test
     public void delete() {
         Product product = new Product();
-        product.setId(1L);
+        product.setId(1001L);
         String delete = esTemplate.delete(product);
         System.out.println(delete);
     }
@@ -222,6 +222,19 @@ public class SpringDataEsTemplateTest {
         List<Product> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
         for (Product product : collect) {
             System.out.println("模糊查询：" + product);
+        }
+    }
+
+    @Test
+    public void multiQueryParam() {
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        boolQueryBuilder.must(QueryBuilders.matchQuery("title", "张"));
+        boolQueryBuilder.should(QueryBuilders.rangeQuery("price").gt(200));
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder().withQuery(boolQueryBuilder).build();
+        SearchHits<Product> search = esTemplate.search(nativeSearchQuery, Product.class);
+        List<Product> productList = search.getSearchHits().stream().map(e -> e.getContent()).collect(Collectors.toList());
+        for (Product product : productList) {
+            System.out.println(product);
         }
     }
 }

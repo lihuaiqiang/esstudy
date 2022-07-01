@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.IndexOperations;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Map;
@@ -53,6 +54,7 @@ public class SpringDataESIndexTest {
     @Test
     public void deleteIndex() {
         boolean b = elasticsearchRestTemplate.deleteIndex(Product.class);
+        boolean delete = elasticsearchRestTemplate.indexOps(IndexCoordinates.of("product")).delete();
         System.out.println("删除索引：" + b);
     }
 
