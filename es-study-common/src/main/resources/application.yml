@@ -1,0 +1,8 @@
+#spring:
+#  datasource:
+#    type: com.alibaba.druid.pool.DruidDataSource  # 当前数据源操作类型
+#    driver-class-name: org.gjt.mm.mysql.Driver
+#    #    driver-class-name: com.mysql.jdbc.Driver
+#    url: jdbc:mysql://localhost:3306/test?characterEncoding=utf8
+#    username: root
+#    password: 123456

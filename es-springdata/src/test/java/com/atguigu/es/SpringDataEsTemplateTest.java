@@ -2,6 +2,7 @@ package com.atguigu.es;
 
 import com.atguigu.es.bean.Product;
 import com.atguigu.es.bean.UserInfoEntity;
+import com.atguigu.es.util.PageHelper;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.FuzzyQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
@@ -247,10 +248,12 @@ public class SpringDataEsTemplateTest {
     }
 
     /**
-     * 测试模糊查询
+     * 借鉴了poc中铁建项目中李林的写法：测试模糊查询
      */
     @Test
     public void fuzzyQuery3() {
+        int currentPage = 0;//当前页，第一页从 0 开始，1 表示第二页
+        int pageSize = 5;//每页显示多少条
         String userName = "三";
         String orgCode = "100100100";
         PageRequest page = PageRequest.of(0, 4);
@@ -275,6 +278,7 @@ public class SpringDataEsTemplateTest {
         for (UserInfoEntity userInfoEntity : list) {
             System.out.println("userInfoEntity：" + userInfoEntity);
         }
+        PageHelper<UserInfoEntity> pageHelper = new PageHelper<UserInfoEntity>(list, totalHits.intValue(), pageSize, currentPage + 1);
     }
 
     /**

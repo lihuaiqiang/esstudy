@@ -11,6 +11,7 @@
     <modules>
         <module>esdemo</module>
         <module>es-springdata</module>
+        <module>es-study-common</module>
     </modules>
 
     <parent>
