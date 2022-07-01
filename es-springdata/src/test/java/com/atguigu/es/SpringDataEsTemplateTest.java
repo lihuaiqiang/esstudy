@@ -1,6 +1,7 @@
 package com.atguigu.es;
 
 import com.atguigu.es.bean.Product;
+import com.atguigu.es.bean.UserInfoEntity;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.FuzzyQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
@@ -8,6 +9,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
+import org.junit.platform.commons.util.StringUtils;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -130,13 +132,35 @@ public class SpringDataEsTemplateTest {
         for (int i = 0; i < 10; i++) {
             Product product = new Product();
             product.setId(Long.valueOf(i));
-            product.setTitle("[" + i + "]小米手机");
+            product.setTitle("小米手机" + i);
             product.setCategory("手机");
-            product.setPrice(1999.0 + i);
+            product.setPrice(10.0 + i);
             product.setImages("http://www.atguigu/xm.jpg");
             productList.add(product);
         }
         esTemplate.save(productList);
+    }
+
+    /**
+     * 批量新增
+     */
+    @Test
+    public void saveAll2() {
+        List<UserInfoEntity> userInfoList = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            UserInfoEntity userInfoEntity = new UserInfoEntity();
+            userInfoEntity.setId(String.valueOf(i));
+            userInfoEntity.setMainPosition(false);
+            userInfoEntity.setName("张三" + i + 10);
+            if (i % 2 == 0) {
+                userInfoEntity.setGender("男");
+            } else {
+                userInfoEntity.setGender("女");
+            }
+            userInfoEntity.setOrgCode("100" + i + 10);
+            userInfoList.add(userInfoEntity);
+        }
+        esTemplate.save(userInfoList);
     }
 
     //分页查询
@@ -186,13 +210,14 @@ public class SpringDataEsTemplateTest {
     public void fuzzyQuery() {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("title", "小米");//必须写“小米”才行
+        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("title", "张");//必须写“小米”才行
         boolQueryBuilder.must(matchPhraseQueryBuilder);
         FieldSortBuilder sortBuilder = new FieldSortBuilder("price").order(SortOrder.DESC);
         NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
                 .withQuery(boolQueryBuilder)
                 //.withSort(sortBuilder)
                 .build();
+        nativeSearchQuery.setTrackTotalHits(true);
         SearchHits<Product> search = esTemplate.search(nativeSearchQuery, Product.class);
         List<SearchHit<Product>> searchHits = search.getSearchHits();
         List<Product> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
@@ -221,6 +246,40 @@ public class SpringDataEsTemplateTest {
         }
     }
 
+    /**
+     * 测试模糊查询
+     */
+    @Test
+    public void fuzzyQuery3() {
+        String userName = "三";
+        String orgCode = "100100100";
+        PageRequest page = PageRequest.of(0, 4);
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        if (StringUtils.isNotBlank(userName)) {
+            MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("name", userName);
+//            MatchQueryBuilder matchQueryBuilder = (MatchQueryBuilder) matchPhraseQueryBuilder;
+            boolQueryBuilder.must(matchPhraseQueryBuilder);
+        }
+        FieldSortBuilder sortBuilder = new FieldSortBuilder("id.keyword").order(SortOrder.DESC);
+        //boolQueryBuilder.must(QueryBuilders.termQuery("searchCode", orgCode));
+        NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
+                .withQuery(boolQueryBuilder)
+                .withSort(sortBuilder)
+                .withPageable(page)
+                .build();
+        searchQuery.setTrackTotalHits(true);
+        SearchHits<UserInfoEntity> search = esTemplate.search(searchQuery, UserInfoEntity.class);
+        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
+        Long totalHits = search.getTotalHits();
+        List<UserInfoEntity> list = searchHits.stream().map(i -> i.getContent()).collect(Collectors.toList());
+        for (UserInfoEntity userInfoEntity : list) {
+            System.out.println("userInfoEntity：" + userInfoEntity);
+        }
+    }
+
+    /**
+     * 多参数查询
+     */
     @Test
     public void multiQueryParam() {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
