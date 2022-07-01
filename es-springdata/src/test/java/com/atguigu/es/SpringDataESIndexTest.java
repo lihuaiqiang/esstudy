@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * 索引操作测试
+ *
  * @author lihuaiqiang
  * @description
  * @date 2022/6/30 8:09
@@ -28,7 +30,7 @@ public class SpringDataESIndexTest {
 
     //创建索引并增加映射配置
     @Test
-    public void createIndex(){
+    public void createIndex() {
         //创建索引，系统初始化会自动创建索引：自动关联项目中的实体类，如果没有当前实体类的索引就自动创建
         System.out.println("创建索引");
     }
@@ -44,4 +46,15 @@ public class SpringDataESIndexTest {
             Object value = entry.getValue();
         }
     }
+
+    /**
+     * 删除索引
+     */
+    @Test
+    public void deleteIndex() {
+        boolean b = elasticsearchRestTemplate.deleteIndex(Product.class);
+        System.out.println("删除索引：" + b);
+    }
+
+
 }

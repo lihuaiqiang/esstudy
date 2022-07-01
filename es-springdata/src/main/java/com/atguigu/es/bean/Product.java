@@ -39,7 +39,7 @@ public class Product {
     /**
      * 商品名称
      */
-    @Field(type = FieldType.Text, analyzer = "ik_max_word")
+    @Field(type = FieldType.Text, analyzer = "ik_smart")
     private String title;
     /**
      * 分类名称

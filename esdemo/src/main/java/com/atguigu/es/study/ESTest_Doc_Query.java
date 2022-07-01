@@ -169,7 +169,7 @@ public class ESTest_Doc_Query {
         SearchHit[] hits8 = response8.getHits().getHits();
         for (SearchHit hit : hits8) {
             String source = hit.getSourceAsString();
-            //System.out.println("模糊查询：" + source);
+            System.out.println("模糊查询：" + source);
         }
 
 

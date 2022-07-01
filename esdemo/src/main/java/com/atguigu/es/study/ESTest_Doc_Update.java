@@ -19,9 +19,9 @@ public class ESTest_Doc_Update {
                 RestClient.builder(new HttpHost("localhost", 9200, "http"))
         );
 
-        // 文档数据插入
+        // 文档数据更新
         UpdateRequest request = new UpdateRequest();
-        request.index("user").id("1001");
+        request.index("user").id("1003");
 
         //全量更新
         /*User user = new User();
@@ -33,7 +33,7 @@ public class ESTest_Doc_Update {
         //上边的数据 索引相同、id相同，存到数据之后是全量更新。所以需要用下边的这个update执行部分数据的修改
 
         //部分数据更新
-        request.doc(XContentType.JSON, "name", "zhangsan");
+        request.doc(XContentType.JSON, "name", "孙兴慜");
         UpdateResponse response = esClient.update(request, RequestOptions.DEFAULT);
 
         // 响应状态
