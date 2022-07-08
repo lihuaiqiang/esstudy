@@ -117,7 +117,7 @@ public class SpringDataESProductDaoTest {
         productDao.saveAll(productList);
     }
 
-    //分页查询
+    //分页查询、排序
     @Test
     public void findByPageable() {
         //设置排序(排序方式，正序还是倒序，排序的 id)

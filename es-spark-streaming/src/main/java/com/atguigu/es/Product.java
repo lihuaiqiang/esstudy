@@ -1,4 +1,4 @@
-package com.atguigu.es.bean;
+package com.atguigu.es;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,16 +12,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 /**
  * @author lihuaiqiang
  * @description
- * @date 2022/6/29 19:41
- * <p>
- * type：字段数据类型
- * analyzer：分词器类型
- * index：是否索引，默认true
- * Keyword：短语，不进行分词
- * @Document(indexName = "shoppong", shards = 3, replicas = 1)
- * indexName：索引名称
- * shards：主分片数量
- * replicas：副本分片数量
+ * @date 2022/7/4 17:58
  */
 @Data
 @NoArgsConstructor
@@ -38,8 +29,6 @@ public class Product {
     private Long id;
     /**
      * 商品名称
-     * ik_smart
-     * ik_max_word
      */
     @Field(type = FieldType.Text, analyzer = "ik_smart")
     private String title;

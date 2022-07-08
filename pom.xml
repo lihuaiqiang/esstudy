@@ -12,6 +12,7 @@
         <module>esdemo</module>
         <module>es-springdata</module>
         <module>es-study-common</module>
+        <module>es-spark-streaming</module>
     </modules>
 
     <parent>

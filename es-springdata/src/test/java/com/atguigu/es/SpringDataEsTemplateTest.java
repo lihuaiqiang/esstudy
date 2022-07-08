@@ -7,6 +7,8 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.FuzzyQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermQueryBuilder;
+import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
@@ -31,6 +33,7 @@ import org.springframework.data.elasticsearch.core.query.UpdateQuery;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,9 +78,13 @@ public class SpringDataEsTemplateTest {
     @Test
     public void getDocumentAll() {
         NativeSearchQuery query = new NativeSearchQueryBuilder().build();
-        SearchHits<Product> search = esTemplate.search(query, Product.class);
-        List<SearchHit<Product>> searchHits = search.getSearchHits();
-        List<Product> productList = searchHits.stream().map(i -> i.getContent()).collect(Collectors.toList());
+        SearchHits<UserInfoEntity> search = esTemplate.search(query, UserInfoEntity.class);
+        //List<Product> productList1 = esTemplate.queryForList(query, Product.class, IndexCoordinates.of("product"));
+        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
+        List<UserInfoEntity> productList = searchHits.stream().map(i -> i.getContent()).collect(Collectors.toList());
+        for (UserInfoEntity userInfoEntity : productList) {
+            System.out.println(userInfoEntity);
+        }
         System.out.println(search.getTotalHits());
     }
 
@@ -108,8 +115,8 @@ public class SpringDataEsTemplateTest {
         product.setPrice(10d);
         //product.setImages("http://www.atguigu/xm.jpg");
         Document document = Document.create();
-        document.append("title", "张三");
-        UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(1L)).withDocument(document).build();
+        document.append("price", 55);
+        UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(4L)).withDocument(document).build();
         esTemplate.update(updateQuery, IndexCoordinates.of("product"));
     }
 
@@ -164,16 +171,15 @@ public class SpringDataEsTemplateTest {
         esTemplate.save(userInfoList);
     }
 
-    //分页查询
+    //分页查询、排序
     @Test
     public void findByPageable() {
         //设置排序(排序方式，正序还是倒序，排序的 id)
         Sort sort = Sort.by(Sort.Direction.DESC, "id");
-        int currentPage = 1;//当前页，第一页从 0 开始，1 表示第二页
-        int pageSize = 5;//每页显示多少条
+        int currentPage = 0;//当前页，第一页从 0 开始，1 表示第二页
+        int pageSize = 100;//每页显示多少条
         //设置查询分页
         PageRequest pageRequest = PageRequest.of(currentPage, pageSize, sort);
-        PageRequest pageRequest2 = PageRequest.of(currentPage, pageSize);
 
         //设置查询哪些特定的字段，不查询哪些特定的字段 "title", "category"
         String[] includes = new String[]{};
@@ -183,11 +189,11 @@ public class SpringDataEsTemplateTest {
         FieldSortBuilder sortBuilder = new FieldSortBuilder("price").order(SortOrder.DESC);
         NativeSearchQuery query = new NativeSearchQueryBuilder()
                 .withPageable(pageRequest)
-                .withSourceFilter(sourceFilter)
-                .withSort(sortBuilder)//PageRequest中加了排序规则，这里的排序就不生效了
+                //.withSourceFilter(sourceFilter)
+                //.withSort(sortBuilder)//PageRequest中加了排序规则，这里的排序就不生效了
                 .build();
         //分页查询
-        AggregatedPage<Product> aggregatedPage = esTemplate.queryForPage(query, Product.class, IndexCoordinates.of("product"));
+        AggregatedPage<Product> aggregatedPage = esTemplate.queryForPage(query, Product.class, IndexCoordinates.of("user"));
         for (Product product : aggregatedPage) {
             System.out.println(product);
         }
@@ -211,12 +217,14 @@ public class SpringDataEsTemplateTest {
     public void fuzzyQuery() {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("title", "张");//必须写“小米”才行
+        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("title", "张三");//必须写“小米”才行
         boolQueryBuilder.must(matchPhraseQueryBuilder);
+        FieldSortBuilder sortBuilder2 = new FieldSortBuilder("id").order(SortOrder.DESC);
         FieldSortBuilder sortBuilder = new FieldSortBuilder("price").order(SortOrder.DESC);
         NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
                 .withQuery(boolQueryBuilder)
-                //.withSort(sortBuilder)
+                .withSort(sortBuilder)
+                .withSort(sortBuilder2)
                 .build();
         nativeSearchQuery.setTrackTotalHits(true);
         SearchHits<Product> search = esTemplate.search(nativeSearchQuery, Product.class);
@@ -224,6 +232,39 @@ public class SpringDataEsTemplateTest {
         List<Product> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
         List<Product> productList = search.get().map(i -> i.getContent()).collect(Collectors.toList());
         for (Product product : collect) {
+            System.out.println(product);
+        }
+    }
+
+    /**
+     * 测试多字段排序
+     */
+    @Test
+    public void multiFieldsSort() {
+        List<Sort.Order> orders = new ArrayList<Sort.Order>();
+        orders.add(new Sort.Order(Sort.Direction.ASC, "positionOrder.keyword"));
+        orders.add(new Sort.Order(Sort.Direction.ASC, "order.keyword"));
+        orders.add(new Sort.Order(Sort.Direction.ASC, "id.keyword"));
+        Sort sort = Sort.by(orders);
+        int currentPage = 0;//当前页，第一页从 0 开始，1 表示第二页
+        int pageSize = 10;//每页显示多少条
+        //设置查询分页
+        PageRequest pageRequest = PageRequest.of(currentPage, pageSize, sort);
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("name", "老绊");//必须写“小米”才行
+        boolQueryBuilder.must(matchPhraseQueryBuilder);
+        boolQueryBuilder.must(QueryBuilders.termQuery("searchCode", "0000100001"));
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
+                .withQuery(boolQueryBuilder)
+                .withPageable(pageRequest)
+                .build();
+        nativeSearchQuery.setTrackTotalHits(true);
+        SearchHits<UserInfoEntity> search = esTemplate.search(nativeSearchQuery, UserInfoEntity.class);
+        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
+        List<UserInfoEntity> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
+        List<UserInfoEntity> productList = search.get().map(i -> i.getContent()).collect(Collectors.toList());
+        for (UserInfoEntity product : collect) {
             System.out.println(product);
         }
     }
@@ -290,6 +331,41 @@ public class SpringDataEsTemplateTest {
         boolQueryBuilder.must(QueryBuilders.matchQuery("title", "张"));
         boolQueryBuilder.should(QueryBuilders.rangeQuery("price").gt(200));
         NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder().withQuery(boolQueryBuilder).build();
+        SearchHits<Product> search = esTemplate.search(nativeSearchQuery, Product.class);
+        List<Product> productList = search.getSearchHits().stream().map(e -> e.getContent()).collect(Collectors.toList());
+        for (Product product : productList) {
+            System.out.println(product);
+        }
+    }
+
+    /**
+     * 多参数查询
+     */
+    @Test
+    public void multiQueryParam2() {
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        List<String> orgCodeList = Arrays.asList("0000100001040007702399001", "0000100001040007702388002");
+        boolQueryBuilder.must(QueryBuilders.termsQuery("searchCode", orgCodeList));
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder().withQuery(boolQueryBuilder).build();
+        SearchHits<UserInfoEntity> search = esTemplate.search(nativeSearchQuery, UserInfoEntity.class);
+        List<UserInfoEntity> productList = search.getSearchHits().stream().map(e -> e.getContent()).collect(Collectors.toList());
+        for (UserInfoEntity product : productList) {
+            System.out.println(product);
+        }
+    }
+
+    /**
+     * 多参数查询
+     */
+    @Test
+    public void queryParam() {
+        //BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        //boolQueryBuilder.must(QueryBuilders.matchQuery("title", "张"));
+        //boolQueryBuilder.should(QueryBuilders.rangeQuery("price").gt(200));
+        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("title", "张三7");
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
+                .withQuery(termQueryBuilder)
+                .build();
         SearchHits<Product> search = esTemplate.search(nativeSearchQuery, Product.class);
         List<Product> productList = search.getSearchHits().stream().map(e -> e.getContent()).collect(Collectors.toList());
         for (Product product : productList) {

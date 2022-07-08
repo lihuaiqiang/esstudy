@@ -7,6 +7,7 @@ import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * @author lihuaiqiang
@@ -18,6 +19,8 @@ import java.io.Serializable;
 public class UserInfoEntity implements Serializable {
 
     private static final long serialVersionUID = 722121518440817645L;
+
+    private String userId; //用户id
 
     //    @Field(type = FieldType.Keyword)
     @Id
@@ -75,5 +78,9 @@ public class UserInfoEntity implements Serializable {
 
     @Field(type = FieldType.Keyword)
     private String searchCode;
+
+    private String positionOrder;  //	岗位的排序号
+
+    private String positionId;
 }
 

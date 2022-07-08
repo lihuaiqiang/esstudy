@@ -1,7 +1,5 @@
 package com.atguigu.es.study;
 
-import com.atguigu.es.entity.User;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
