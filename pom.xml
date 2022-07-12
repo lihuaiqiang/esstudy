@@ -13,6 +13,7 @@
         <module>es-springdata</module>
         <module>es-study-common</module>
         <module>es-spark-streaming</module>
+        <module>es-flink</module>
     </modules>
 
     <parent>

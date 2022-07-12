@@ -78,11 +78,11 @@ public class SpringDataEsTemplateTest {
     @Test
     public void getDocumentAll() {
         NativeSearchQuery query = new NativeSearchQueryBuilder().build();
-        SearchHits<UserInfoEntity> search = esTemplate.search(query, UserInfoEntity.class);
+        SearchHits<Product> search = esTemplate.search(query, Product.class);
         //List<Product> productList1 = esTemplate.queryForList(query, Product.class, IndexCoordinates.of("product"));
-        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
-        List<UserInfoEntity> productList = searchHits.stream().map(i -> i.getContent()).collect(Collectors.toList());
-        for (UserInfoEntity userInfoEntity : productList) {
+        List<SearchHit<Product>> searchHits = search.getSearchHits();
+        List<Product> productList = searchHits.stream().map(i -> i.getContent()).collect(Collectors.toList());
+        for (Product userInfoEntity : productList) {
             System.out.println(userInfoEntity);
         }
         System.out.println(search.getTotalHits());
@@ -128,6 +128,7 @@ public class SpringDataEsTemplateTest {
         Product product = new Product();
         product.setId(1001L);
         String delete = esTemplate.delete(product);
+        boolean exists = esTemplate.exists(String.valueOf(1L), Product.class);
         System.out.println(delete);
     }
 
