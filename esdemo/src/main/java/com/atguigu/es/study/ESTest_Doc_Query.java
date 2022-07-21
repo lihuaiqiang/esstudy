@@ -9,6 +9,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.FuzzyQueryBuilder;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.elasticsearch.index.query.PrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.TermQueryBuilder;
@@ -225,16 +226,12 @@ public class ESTest_Doc_Query {
         SearchRequest request11 = new SearchRequest();
         request11.indices("user");
         SearchSourceBuilder builder11 = new SearchSourceBuilder();
-
         AggregationBuilder termsAggregationBuilder = AggregationBuilders.terms("age_group").field("age");
         builder11.aggregation(termsAggregationBuilder);
-
         //顺便排了个序
         builder11.sort("age", SortOrder.ASC);
-
         request11.source(builder11);
         SearchResponse response11 = esClient.search(request11, RequestOptions.DEFAULT);
-
         SearchHit[] hits11 = response11.getHits().getHits();
         System.out.println("分组查询：" + response11.getHits().getTotalHits());
         for (SearchHit hit : hits11) {

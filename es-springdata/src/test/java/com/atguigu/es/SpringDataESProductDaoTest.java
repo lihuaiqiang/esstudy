@@ -97,6 +97,8 @@ public class SpringDataESProductDaoTest {
         Product product = new Product();
         product.setId(1001L);
         productDao.delete(product);
+
+        productDao.deleteAll();
     }
 
     /**

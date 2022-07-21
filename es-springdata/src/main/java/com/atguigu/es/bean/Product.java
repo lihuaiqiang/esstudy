@@ -58,4 +58,7 @@ public class Product {
      */
     @Field(type = FieldType.Keyword, index = false)
     private String images;
+
+    @Field(type = FieldType.Keyword)
+    private String code;
 }

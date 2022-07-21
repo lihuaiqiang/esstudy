@@ -19,9 +19,11 @@ public class ESTest_Doc_Insert_Batch2 {
         // 文档数据批量插入
         BulkRequest request = new BulkRequest();
 
-        request.add(new IndexRequest().index("user").id("1003").source(XContentType.JSON, "name", "wangwu", "sex", "女", "age", "19"));
-        request.add(new IndexRequest().index("user").id("1005").source(XContentType.JSON, "name", "孙准浩", "sex", "男", "age", "28"));
-        request.add(new IndexRequest().index("user").id("1006").source(XContentType.JSON, "name", "费莱尼", "sex", "男", "age", "33"));
+        //request.add(new IndexRequest().index("user").id("1003").source(XContentType.JSON, "name", "wangwu", "sex", "女", "age", "19"));
+        request.add(new IndexRequest().index("user").id("1004").source(XContentType.JSON, "name", "wangwu", "sex", "女", "age", "19", "id", "100010001"));
+        //request.add(new IndexRequest().index("user").id("1005").source(XContentType.JSON, "name", "孙准浩", "sex", "男", "age", "28"));
+        //request.add(new IndexRequest().index("user").id("1006").source(XContentType.JSON, "name", "费莱尼", "sex", "男", "age", "33"));
+        request.add(new IndexRequest().index("user").id("1007").source(XContentType.JSON, "name", "费莱尼", "sex", "男", "age", "33", "id", "200010001"));
 
         BulkResponse response = esClient.bulk(request, RequestOptions.DEFAULT);
 
