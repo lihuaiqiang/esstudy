@@ -9,9 +9,6 @@ import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
 import org.elasticsearch.index.query.PrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.index.query.TermsQueryBuilder;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
-import org.elasticsearch.index.reindex.DeleteByQueryRequestBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
@@ -28,11 +25,9 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.aggregation.AggregatedPage;
 import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import org.springframework.data.elasticsearch.core.query.DeleteQuery;
 import org.springframework.data.elasticsearch.core.query.FetchSourceFilterBuilder;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
-import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.data.elasticsearch.core.query.SourceFilter;
 import org.springframework.data.elasticsearch.core.query.UpdateQuery;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -145,7 +140,7 @@ public class SpringDataEsTemplateTest {
         List<Product> productList = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             Product product = new Product();
-            product.setId(Long.valueOf(i+10));
+            product.setId(Long.valueOf(i + 10));
             product.setTitle("小米手机" + i);
             product.setCategory("手机");
             product.setPrice(10.0 + i);
@@ -179,7 +174,7 @@ public class SpringDataEsTemplateTest {
         }
         Long statTime = System.currentTimeMillis();
         esTemplate.save(userInfoList);
-        System.out.println("定时任务UserTask处理结束,耗时:{}" + (System.currentTimeMillis()-statTime)/1000);
+        System.out.println("定时任务UserTask处理结束,耗时:{}" + (System.currentTimeMillis() - statTime) / 1000);
     }
 
     //分页查询、排序
@@ -311,6 +306,7 @@ public class SpringDataEsTemplateTest {
         NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder().withQuery(prefixQueryBuilder).build();
 
         SearchHits<Product> search = esTemplate.search(nativeSearchQuery, Product.class);
+        boolean b = search.hasSearchHits();
         List<SearchHit<Product>> searchHits = search.getSearchHits();
         List<Product> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
         for (Product product : collect) {
@@ -352,7 +348,7 @@ public class SpringDataEsTemplateTest {
     }
 
     /**
-     * 测试前缀查询：下边的方式没有查询出数据
+     * 测试条件查询之后再进行删除
      */
     @Test
     public void deleteBySearchQuery() {
@@ -369,6 +365,7 @@ public class SpringDataEsTemplateTest {
         }
         System.out.println("删除之前的数据" + search.getTotalHits());
 
+        System.out.println("UserInfoEntity索引是否存在：" + esTemplate.indexOps(UserInfoEntity.class).exists());
         System.out.println("=============删除操作==============");
 
         BoolQueryBuilder boolQueryBuilder2 = QueryBuilders.boolQuery();
@@ -389,6 +386,30 @@ public class SpringDataEsTemplateTest {
             System.out.println("删除之后的数据" + userInfoEntity);
         }
         System.out.println("删除之后的数据" + search3.getTotalHits());
+    }
+
+    /**
+     * 根据条件删除数据之前，先判断是否有数据
+     */
+    @Test
+    public void deleteEsBySearchQuery2() {
+        System.out.println("UserInfoEntity索引是否存在：" + esTemplate.indexOps(UserInfoEntity.class).exists());
+        if (esTemplate.indexOps(UserInfoEntity.class).exists()) {
+            BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+            TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("searchCode", "0000100066010007700499001");
+            boolQueryBuilder.must(termQueryBuilder);
+            NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder().withQuery(boolQueryBuilder).build();
+            SearchHits<UserInfoEntity> search = esTemplate.search(nativeSearchQuery, UserInfoEntity.class);
+            System.out.println("数据总数：" + search.getTotalHits());
+            if (search.hasSearchHits()) {
+                List<SearchHit<UserInfoEntity>> searchHits3 = search.getSearchHits();
+                List<UserInfoEntity> userInfoEntityList3 = searchHits3.stream().map(i -> i.getContent()).collect(Collectors.toList());
+                for (UserInfoEntity userInfoEntity : userInfoEntityList3) {
+                    System.out.println("查询到的数据：" + userInfoEntity);
+                }
+                esTemplate.delete(nativeSearchQuery, UserInfoEntity.class, esTemplate.getIndexCoordinatesFor(UserInfoEntity.class));
+            }
+        }
     }
 
     /**
