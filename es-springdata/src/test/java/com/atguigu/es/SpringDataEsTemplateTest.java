@@ -10,6 +10,7 @@ import org.elasticsearch.index.query.PrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.NestedSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
 import org.junit.platform.commons.util.StringUtils;
@@ -32,6 +33,7 @@ import org.springframework.data.elasticsearch.core.query.SourceFilter;
 import org.springframework.data.elasticsearch.core.query.UpdateQuery;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -115,8 +117,8 @@ public class SpringDataEsTemplateTest {
         product.setPrice(10d);
         //product.setImages("http://www.atguigu/xm.jpg");
         Document document = Document.create();
-        document.append("code", "200010007");
-        UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(16L)).withDocument(document).build();
+        document.append("userOrder", 20);
+        UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(27L)).withDocument(document).build();
         esTemplate.update(updateQuery, IndexCoordinates.of("product"));
     }
 
@@ -140,15 +142,25 @@ public class SpringDataEsTemplateTest {
         List<Product> productList = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             Product product = new Product();
-            product.setId(Long.valueOf(i + 10));
-            product.setTitle("小米手机" + i);
-            product.setCategory("手机");
+            product.setId(Long.valueOf(i + 30));
+            product.setTitle("比亚迪" + i);
+            product.setCategory("新能源汽车");
             product.setPrice(10.0 + i);
             product.setImages("http://www.atguigu/xm.jpg");
             product.setCode((i + 1) + "0001000" + (i + 1));
+            product.setPositionOrder(new BigDecimal("0." + product.getCode()));
+            product.setUserOrder(new BigDecimal(product.getId() - 1));
             productList.add(product);
         }
         esTemplate.save(productList);
+    }
+
+    public String dealOrder(String order){
+        if(order.length() == 1)
+            order ="00" + order;
+        if(order.length() == 2)
+            order ="0" + order;
+        return order;
     }
 
     /**
@@ -159,7 +171,7 @@ public class SpringDataEsTemplateTest {
         List<UserInfoEntity> userInfoList = new ArrayList<>();
         //79500 79900 80000  85000 87000 87400 87450  可以
         //87480 87500  不可以
-        for (int i = 1; i <= 50000; i++) {
+        for (int i = 1; i <= 50500; i++) {
             UserInfoEntity userInfoEntity = new UserInfoEntity();
             userInfoEntity.setId(String.valueOf(i));
             userInfoEntity.setMainPosition(false);
@@ -172,16 +184,69 @@ public class SpringDataEsTemplateTest {
             userInfoEntity.setOrgCode("100" + i + 10);
             userInfoList.add(userInfoEntity);
         }
-        Long statTime = System.currentTimeMillis();
-        esTemplate.save(userInfoList);
-        System.out.println("定时任务UserTask处理结束,耗时:{}" + (System.currentTimeMillis() - statTime) / 1000);
+//        Long statTime = System.currentTimeMillis();
+//        esTemplate.save(userInfoList);
+//        System.out.println("定时任务UserTask处理结束,耗时:{}" + (System.currentTimeMillis() - statTime) / 1000);
+        List<List<UserInfoEntity>> splistList = splistList(userInfoList, 10000);
+        for (List<UserInfoEntity> userInfoEntityList : splistList) {
+            System.out.println(userInfoEntityList.size());
+        }
+    }
+
+    public static <T> List<List<T>> splistList(List<T> list, int subNum) {
+        List<List<T>> tNewList = new ArrayList<List<T>>();
+        int priIndex = 0;
+        int lastPriIndex = 0;
+        int insertTimes = list.size() / subNum;
+        List<T> subList = new ArrayList<>();
+        for (int i = 0; i <= insertTimes; i++) {
+            priIndex = subNum * i;
+            lastPriIndex = priIndex + subNum;
+            if (i == insertTimes) {
+                subList = list.subList(priIndex, list.size());
+            } else {
+                subList = list.subList(priIndex, lastPriIndex);
+            }
+            if (subList.size() > 0) {
+                tNewList.add(subList);
+            }
+        }
+        return tNewList;
+    }
+
+    @Test
+    public void findBySort() {
+        PrefixQueryBuilder prefixQueryBuilder = QueryBuilders.prefixQuery("title", "小米");
+        FieldSortBuilder sortBuilder = new FieldSortBuilder("positionOrder").order(SortOrder.DESC);
+        FieldSortBuilder sortBuilder2 = new FieldSortBuilder("userOrder").order(SortOrder.ASC);
+        FieldSortBuilder sortBuilder3 = new FieldSortBuilder("code.keyword").order(SortOrder.DESC);
+        NativeSearchQuery query = new NativeSearchQueryBuilder()
+                .withQuery(prefixQueryBuilder)
+                //.withPageable(pageRequest)
+                //.withSourceFilter(sourceFilter)
+                .withSort(sortBuilder2)//PageRequest中加了排序规则，这里的排序就不生效了
+                .withSort(sortBuilder)//PageRequest中加了排序规则，这里的排序就不生效了
+                .withSort(sortBuilder3)//PageRequest中加了排序规则，这里的排序就不生效了
+                .build();
+        //分页查询
+        AggregatedPage<Product> aggregatedPage = esTemplate.queryForPage(query, Product.class, IndexCoordinates.of("product"));
+        for (Product product : aggregatedPage) {
+            System.out.println(product);
+        }
     }
 
     //分页查询、排序
     @Test
     public void findByPageable() {
+        //多字段排序
+        List<Sort.Order> orders = new ArrayList<Sort.Order>();
+        orders.add(new Sort.Order(Sort.Direction.ASC, "price"));
+        orders.add(new Sort.Order(Sort.Direction.DESC, "id"));
+//        orders.add(new Sort.Order(Sort.Direction.ASC, "id.keyword"));
+        Sort sort = Sort.by(orders);
+
         //设置排序(排序方式，正序还是倒序，排序的 id)
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+//        Sort sort = Sort.by(Sort.Direction.ASC, "id");
         int currentPage = 0;//当前页，第一页从 0 开始，1 表示第二页
         int pageSize = 100;//每页显示多少条
         //设置查询分页
@@ -193,13 +258,15 @@ public class SpringDataEsTemplateTest {
         SourceFilter sourceFilter = new FetchSourceFilterBuilder().withIncludes(includes).withExcludes(excludes).build();
 
         FieldSortBuilder sortBuilder = new FieldSortBuilder("price").order(SortOrder.DESC);
+        FieldSortBuilder sortBuilder2 = new FieldSortBuilder("id").order(SortOrder.ASC);
         NativeSearchQuery query = new NativeSearchQueryBuilder()
-                .withPageable(pageRequest)
+                //.withPageable(pageRequest)
                 //.withSourceFilter(sourceFilter)
-                //.withSort(sortBuilder)//PageRequest中加了排序规则，这里的排序就不生效了
+                .withSort(sortBuilder)//PageRequest中加了排序规则，这里的排序就不生效了
+                .withSort(sortBuilder2)//PageRequest中加了排序规则，这里的排序就不生效了
                 .build();
         //分页查询
-        AggregatedPage<Product> aggregatedPage = esTemplate.queryForPage(query, Product.class, IndexCoordinates.of("user"));
+        AggregatedPage<Product> aggregatedPage = esTemplate.queryForPage(query, Product.class, IndexCoordinates.of("product"));
         for (Product product : aggregatedPage) {
             System.out.println(product);
         }
@@ -310,6 +377,32 @@ public class SpringDataEsTemplateTest {
         List<SearchHit<Product>> searchHits = search.getSearchHits();
         List<Product> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
         for (Product product : collect) {
+            System.out.println("前缀查询：" + product);
+        }
+    }
+
+    /**
+     * 多条件前缀查询：下边的方式没有查询出数据
+     */
+    @Test
+    public void prefixQuery2() {
+        /*SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchQuery("title","米"));*/
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        PrefixQueryBuilder prefixQueryBuilder = QueryBuilders.prefixQuery("orgCode", "0000100001");
+        PrefixQueryBuilder prefixQueryBuilder2 = QueryBuilders.prefixQuery("orgCode", "000010000100179");
+        boolQueryBuilder.should(prefixQueryBuilder);
+        boolQueryBuilder.should(prefixQueryBuilder2);
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
+                .withQuery(prefixQueryBuilder)
+                .build();
+        Long statTime = System.currentTimeMillis();
+        SearchHits<UserInfoEntity> search = esTemplate.search(nativeSearchQuery, UserInfoEntity.class);
+        System.out.println(("定时任务UserTask处理结束,耗时:{}" + (System.currentTimeMillis() - statTime) ));
+        boolean b = search.hasSearchHits();
+        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
+        List<UserInfoEntity> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
+        for (UserInfoEntity product : collect) {
             System.out.println("前缀查询：" + product);
         }
     }

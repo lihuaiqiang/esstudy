@@ -9,6 +9,8 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import java.math.BigDecimal;
+
 /**
  * @author lihuaiqiang
  * @description
@@ -59,6 +61,11 @@ public class Product {
     @Field(type = FieldType.Keyword, index = false)
     private String images;
 
-    @Field(type = FieldType.Keyword)
+//    @Field(type = FieldType.Keyword)
     private String code;
+
+    private BigDecimal positionOrder;
+
+
+    private BigDecimal userOrder;
 }
