@@ -214,6 +214,9 @@ public class SpringDataEsTemplateTest {
         return tNewList;
     }
 
+    /**
+     * 多字段排序：方式一
+     */
     @Test
     public void findBySort() {
         PrefixQueryBuilder prefixQueryBuilder = QueryBuilders.prefixQuery("title", "小米");
@@ -235,7 +238,42 @@ public class SpringDataEsTemplateTest {
         }
     }
 
-    //分页查询、排序
+    /**
+     * 测试多字段排序：方式二
+     */
+    @Test
+    public void multiFieldsSort() {
+        List<Sort.Order> orders = new ArrayList<Sort.Order>();
+        orders.add(new Sort.Order(Sort.Direction.ASC, "positionOrder.keyword"));
+        orders.add(new Sort.Order(Sort.Direction.ASC, "order.keyword"));
+        orders.add(new Sort.Order(Sort.Direction.ASC, "id.keyword"));
+        Sort sort = Sort.by(orders);
+        int currentPage = 0;//当前页，第一页从 0 开始，1 表示第二页
+        int pageSize = 10;//每页显示多少条
+        //设置查询分页
+        PageRequest pageRequest = PageRequest.of(currentPage, pageSize, sort);
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("name", "老绊");//必须写“小米”才行
+        boolQueryBuilder.must(matchPhraseQueryBuilder);
+        boolQueryBuilder.must(QueryBuilders.termQuery("searchCode", "0000100001"));
+        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
+                .withQuery(boolQueryBuilder)
+                .withPageable(pageRequest)
+                .build();
+        nativeSearchQuery.setTrackTotalHits(true);
+        SearchHits<UserInfoEntity> search = esTemplate.search(nativeSearchQuery, UserInfoEntity.class);
+        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
+        List<UserInfoEntity> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
+        List<UserInfoEntity> productList = search.get().map(i -> i.getContent()).collect(Collectors.toList());
+        for (UserInfoEntity product : collect) {
+            System.out.println(product);
+        }
+    }
+
+    /**
+     * 分页查询、排序
+     */
     @Test
     public void findByPageable() {
         //多字段排序
@@ -310,39 +348,6 @@ public class SpringDataEsTemplateTest {
     }
 
     /**
-     * 测试多字段排序
-     */
-    @Test
-    public void multiFieldsSort() {
-        List<Sort.Order> orders = new ArrayList<Sort.Order>();
-        orders.add(new Sort.Order(Sort.Direction.ASC, "positionOrder.keyword"));
-        orders.add(new Sort.Order(Sort.Direction.ASC, "order.keyword"));
-        orders.add(new Sort.Order(Sort.Direction.ASC, "id.keyword"));
-        Sort sort = Sort.by(orders);
-        int currentPage = 0;//当前页，第一页从 0 开始，1 表示第二页
-        int pageSize = 10;//每页显示多少条
-        //设置查询分页
-        PageRequest pageRequest = PageRequest.of(currentPage, pageSize, sort);
-        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-
-        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("name", "老绊");//必须写“小米”才行
-        boolQueryBuilder.must(matchPhraseQueryBuilder);
-        boolQueryBuilder.must(QueryBuilders.termQuery("searchCode", "0000100001"));
-        NativeSearchQuery nativeSearchQuery = new NativeSearchQueryBuilder()
-                .withQuery(boolQueryBuilder)
-                .withPageable(pageRequest)
-                .build();
-        nativeSearchQuery.setTrackTotalHits(true);
-        SearchHits<UserInfoEntity> search = esTemplate.search(nativeSearchQuery, UserInfoEntity.class);
-        List<SearchHit<UserInfoEntity>> searchHits = search.getSearchHits();
-        List<UserInfoEntity> collect = searchHits.stream().map(e -> e.getContent()).collect(Collectors.toList());
-        List<UserInfoEntity> productList = search.get().map(i -> i.getContent()).collect(Collectors.toList());
-        for (UserInfoEntity product : collect) {
-            System.out.println(product);
-        }
-    }
-
-    /**
      * 测试模糊查询：下边的方式没有查询出数据
      */
     @Test
@@ -362,7 +367,7 @@ public class SpringDataEsTemplateTest {
     }
 
     /**
-     * 测试前缀查询：下边的方式没有查询出数据
+     * 测试单条件前缀查询
      */
     @Test
     public void prefixQuery() {
@@ -382,7 +387,7 @@ public class SpringDataEsTemplateTest {
     }
 
     /**
-     * 多条件前缀查询：下边的方式没有查询出数据
+     * 多条件前缀查询
      */
     @Test
     public void prefixQuery2() {
